@@ -45,16 +45,16 @@ const menuData = [
     icon: <HomeRoundedIcon />,
   },
 
-  {
-    title: "Widget",
-    path: "/about",
-    icon: <WidgetsRoundedIcon />,
-  },
-  {
-    title: "Faqs",
-    path: "/faqs",
-    icon: <PaymentIcon />,
-  },
+  // {
+  //   title: "Widget",
+  //   path: "/about",
+  //   icon: <WidgetsRoundedIcon />,
+  // },
+  // {
+  //   title: "Faqs",
+  //   path: "/faqs",
+  //   icon: <PaymentIcon />,
+  // },
 ];
 
 export default function DashboardMenu({ ...props }) {

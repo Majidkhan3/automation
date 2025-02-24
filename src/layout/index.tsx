@@ -136,14 +136,14 @@ export default function MainLayout({ ...props }) {
           sx={{ borderBottom: `1px solid ${themColor.ghost}` }}
         >
           <img
-            src="/svg/chatly Logo Horizontal.png"
+            src="/images/image.png"
             alt="Ichonic Logo"
             width={170}
             style={{
               width: "180px !important",
               // height: "71px",
-              paddingBottom: "7px",
-              paddingTop: "7px",
+              paddingBottom: "18px",
+              paddingTop: "18px",
             }}
           />
         </Box>
