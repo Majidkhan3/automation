@@ -30,10 +30,10 @@ const UserSchema: Schema = new Schema<UserInterface>(
       type: String,
       required: false,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    // isActive: {
+    //   type: Boolean,
+    //   default: true,
+    // },
     isVerified: { type: Boolean, default: false },
     jwt: {
       type: String,
@@ -61,18 +61,22 @@ const UserSchema: Schema = new Schema<UserInterface>(
       default: false,
       required: false,
     },
-    plan: {
+    role:{
       type: String,
-      required: true,
+      required: false,
     },
+    // plan: {
+    //   type: String,
+    //   required: true,
+    // },
     installed: {
       type: Boolean,
       required: false,
     },
-    widget_type: {
-      type: String,
-      required: true,
-    },
+    // widget_type: {
+    //   type: String,
+    //   required: true,
+    // },
     disabled: {
       type: Boolean,
       required: false,

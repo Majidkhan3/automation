@@ -85,6 +85,37 @@ export const changeScriptStatus = async ({
   // console.log("response : ", data);
   return data;
 };
+export const getUsers = async () => {
+  const { data } = await http.get('/user');
+  return data;
+};
+
+// Create new user
+export const createUser = async (payload: {
+  email: string;
+  password: string;
+  role: "admin" | "user";
+}) => {
+  const { data } = await http.post('/user', payload);
+  return data;
+};
+
+// Update user
+export const updateUser = async (id: string, payload: {
+  email: string;
+  password?: string;
+  role: "admin" | "user";
+}) => {
+  const { data } = await http.put(`/user/${id}`, payload);
+  return data;
+};
+
+// Delete user
+export const deleteUser = async (id: string) => {
+  const { data } = await http.delete(`/user/${id}`);
+  return data;
+};
+
 
 // export const renameEmail = async ({ widget_type, email, token }: any) => {
 //   console.log("🚀 ~ renameEmail ~ widget_type:", widget_type);

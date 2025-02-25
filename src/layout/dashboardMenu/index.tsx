@@ -37,32 +37,46 @@ import Image from "next/image";
 import Logout from "@mui/icons-material/Logout";
 import Settings from "@mui/icons-material/Settings";
 import PersonAdd from "@mui/icons-material/PersonAdd";
-
-const menuData = [
-  {
-    title: "Dashboard",
-    path: "/home",
-    icon: <HomeRoundedIcon />,
-  },
-
-  // {
-  //   title: "Widget",
-  //   path: "/about",
-  //   icon: <WidgetsRoundedIcon />,
-  // },
-  // {
-  //   title: "Faqs",
-  //   path: "/faqs",
-  //   icon: <PaymentIcon />,
-  // },
-];
+import { Person } from "@mui/icons-material";
 
 export default function DashboardMenu({ ...props }) {
   // const router = useRouter();
   const { pathname } = useRouter();
   const { state, actions } = useContext(SettingsContext);
   const { logout, isAuthenticated, user }: any = useContext(AuthContext);
-
+  const menuData = [
+    {
+      title: "Dashboard",
+      path: "/home",
+      icon: <HomeRoundedIcon />,
+    },
+    ...(user?.role?.toLowerCase() === "admin"
+      ? [
+          {
+            title: "Users",
+            path: "/users",
+            icon: <Person />,
+          },
+        ]
+      : []),
+    ,
+    {
+      title: "Automation",
+      path: "/automation",
+      icon: <WidgetsRoundedIcon />,
+    },
+    // {
+    //   title: "Widget",
+    //   path: "/about",
+    //   icon: <WidgetsRoundedIcon />,
+    // },
+    // {
+    //   title: "Faqs",
+    //   path: "/faqs",
+    //   icon: <PaymentIcon />,
+    // },
+  ];
+  console.log("user", user);
   const theme = useTheme();
   const {
     mainOpen,
@@ -116,9 +130,10 @@ export default function DashboardMenu({ ...props }) {
                 key={Math.random()}
                 disablePadding
                 className={`list-item ${
-                  pathname === value.path ? "active" : ""
+                  pathname === value?.path ? "active" : ""
                 } ${
-                  pathname.includes("update-widget") && value.title === "Widget"
+                  pathname.includes("update-widget") &&
+                  value?.title === "Widget"
                     ? "active"
                     : ""
                 } `}
@@ -126,7 +141,9 @@ export default function DashboardMenu({ ...props }) {
                 //   // padding: "0px 12px",
                 // }}
               >
-                <ListItemButton onClick={() => router.push(value.path)}>
+                <ListItemButton
+                  onClick={() => value?.path && router.push(value.path)}
+                >
                   <ListItemIcon
                     sx={{
                       fill: "black",
@@ -137,10 +154,10 @@ export default function DashboardMenu({ ...props }) {
                       },
                     }}
                   >
-                    {value.icon}
+                    {value?.icon}
                   </ListItemIcon>
                   <ListItemText
-                    primary={value.title}
+                    primary={value?.title}
                     sx={{ color: "black", fontSize: "0.9rem" }}
                   />
                 </ListItemButton>

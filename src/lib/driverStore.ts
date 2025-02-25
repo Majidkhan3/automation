@@ -27,18 +27,31 @@ class DriverStore {
   }
 
   public set(id: string, driver: WebDriver): void {
-    console.log(`[DriverStore] Setting driver ${id}`);
+    if (!id || !driver) {
+      console.error('[DriverStore] Invalid ID or driver instance provided');
+      throw new Error('Invalid ID or driver instance');
+    }
+
+    if (this.drivers.has(id)) {
+      console.warn(`[DriverStore] Driver with ID ${id} already exists. Overwriting.`);
+    }
+
     const driverInfo: DriverInfo = {
       driver,
       createdAt: new Date(),
-      lastUsed: new Date()
+      lastUsed: new Date(),
     };
     this.drivers.set(id, driverInfo);
+    console.log(`[DriverStore] Driver ${id} added successfully`);
     this.logState();
   }
 
   public get(id: string): WebDriver | undefined {
-    console.log(`[DriverStore] Getting driver ${id}`);
+    if (!id) {
+      console.error('[DriverStore] Invalid ID provided');
+      throw new Error('Invalid ID');
+    }
+
     const driverInfo = this.drivers.get(id);
     if (driverInfo) {
       driverInfo.lastUsed = new Date();
@@ -50,8 +63,17 @@ class DriverStore {
   }
 
   public delete(id: string): boolean {
-    console.log(`[DriverStore] Deleting driver ${id}`);
+    if (!id) {
+      console.error('[DriverStore] Invalid ID provided');
+      throw new Error('Invalid ID');
+    }
+
     const result = this.drivers.delete(id);
+    if (result) {
+      console.log(`[DriverStore] Driver ${id} deleted successfully`);
+    } else {
+      console.log(`[DriverStore] Driver ${id} not found for deletion`);
+    }
     this.logState();
     return result;
   }
@@ -68,15 +90,32 @@ class DriverStore {
       driverDetails: Array.from(this.drivers.entries()).map(([id, info]) => ({
         id,
         createdAt: info.createdAt,
-        lastUsed: info.lastUsed
-      }))
+        lastUsed: info.lastUsed,
+      })),
     };
+  }
+
+  public cleanupStaleDrivers(maxAgeInMinutes: number = 30): void {
+    const now = new Date();
+    const staleDriverIds: string[] = [];
+
+    this.drivers.forEach((info, id) => {
+      const ageInMinutes = (now.getTime() - info.lastUsed.getTime()) / (1000 * 60);
+      if (ageInMinutes > maxAgeInMinutes) {
+        staleDriverIds.push(id);
+      }
+    });
+
+    staleDriverIds.forEach((id) => {
+      this.delete(id);
+      console.log(`[DriverStore] Cleaned up stale driver ${id}`);
+    });
   }
 
   private logState(): void {
     console.log('[DriverStore] Current state:', {
       driversCount: this.drivers.size,
-      driverIds: Array.from(this.drivers.keys())
+      driverIds: Array.from(this.drivers.keys()),
     });
   }
 }

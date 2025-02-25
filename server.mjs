@@ -11,6 +11,7 @@ const dev = process.env.NODE_ENV !== "production";
 const port = process.env.PORT || 3000;
 const app = next({ dev });
 const database = process.env.MONGO_URI || "mongodb://localhost:27017/newstack";
+console.log("Database", database);
 const handle = app.getRequestHandler();
 
 const nextCallback = (req, res) => {
@@ -27,8 +28,13 @@ const nextCallback = (req, res) => {
 app.prepare().then(async () => {
   const server = express();
   server.use(cors());
-
-  const { connection } = await mongoose.connect(database);
+  const mongooseOptions = {
+    writeConcern: { w: 1 },
+    retryWrites: true,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  };
+  const { connection } = await mongoose.connect(database, mongooseOptions);
 
   console.log(`Connected to MongoDB: ${connection.name}`);
   server.set("trust proxy", 1);

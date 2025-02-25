@@ -24,6 +24,7 @@ export interface UserInterface extends Document {
   wixScriptAdded?: boolean;
   plan?: string;
   installed?: boolean;
+  role: "admin" | "user";
   widget_type?: string;
   renamingEmail?: boolean;
   disabled?: boolean;

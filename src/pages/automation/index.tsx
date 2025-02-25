@@ -1,34 +1,74 @@
 import { Card } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const Index = () => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
   const [browsers, setBrowsers] = useState<
-    { id: string; url: string; isScrolling: boolean }[]
+    {
+      id: string;
+      url: string;
+      isScrolling: boolean;
+      ref: React.RefObject<HTMLIFrameElement>;
+    }[]
   >([]);
-  const handleScroll = async (id: string) => {
-    const browser = browsers.find((b) => b.id === id);
-    if (browser) {
-      const updatedBrowsers = browsers.map((b) =>
-        b.id === id ? { ...b, isScrolling: !b.isScrolling } : b
-      );
-      setBrowsers(updatedBrowsers);
+  useEffect(() => {
+    const scrollIntervals: { [key: string]: NodeJS.Timeout } = {};
 
-      try {
-        await fetch("/api/driver/scroll", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id, scrolling: !browser.isScrolling }),
-        });
-      } catch (error) {
-        console.error("Error controlling scroll:", error);
+    browsers.forEach((browser) => {
+      if (browser.isScrolling && browser.ref.current) {
+        const iframe = browser.ref.current;
+
+        // Wait for the iframe to load
+        iframe.onload = () => {
+          let currentScroll = 0;
+          scrollIntervals[browser.id] = setInterval(() => {
+            try {
+              if (iframe.contentDocument) {
+                const iframeBody = iframe.contentDocument.body;
+                const iframeHtml = iframe.contentDocument.documentElement;
+
+                currentScroll += scrollSpeed;
+                iframeBody.scrollTo({
+                  top: currentScroll,
+                  behavior: "smooth",
+                });
+
+                // Reset scroll if at bottom
+                if (
+                  currentScroll >=
+                  iframeBody.scrollHeight - iframeBody.clientHeight
+                ) {
+                  currentScroll = 0;
+                }
+              }
+            } catch (error) {
+              console.error(`Scrolling error for ${browser.url}:`, error);
+              // Optionally stop scrolling on error
+              setBrowsers((prev) =>
+                prev.map((b) =>
+                  b.id === browser.id ? { ...b, isScrolling: false } : b
+                )
+              );
+            }
+          }, 50);
+        };
       }
-    }
+    });
+
+    return () => {
+      Object.values(scrollIntervals).forEach((interval) =>
+        clearInterval(interval)
+      );
+    };
+  }, [browsers, scrollSpeed]);
+  const handleScroll = (id: string) => {
+    setBrowsers((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, isScrolling: !b.isScrolling } : b))
+    );
   };
+
   const handleOpenWebsite = async () => {
     setLoading(true);
     try {
@@ -45,11 +85,13 @@ const Index = () => {
         throw new Error(data.error);
       }
 
-      // Add new browser to the list
-      setBrowsers((prev) => [
-        ...prev,
-        { id: Date.now().toString(), url, isScrolling: false },
-      ]);
+      const newBrowser = {
+        id: Date.now().toString(),
+        url,
+        isScrolling: true,
+        ref: React.createRef<HTMLIFrameElement>(),
+      };
+      setBrowsers((prev) => [...prev, newBrowser]);
       setUrl(""); // Clear input after successful open
     } catch (error) {
       console.error("Error opening website:", error);
@@ -147,10 +189,18 @@ const Index = () => {
               </div>
               <div className="relative w-full" style={{ height: "300px" }}>
                 <iframe
+                  ref={browser.ref}
                   src={browser.url}
                   className="absolute inset-0 w-full h-full border-none"
-                  sandbox="allow-same-origin allow-scripts"
+                  style={{ overflow: "scroll" }}
+                  sandbox="allow-same-origin allow-scripts allow-popups"
                   title={`Preview of ${browser.url}`}
+                  onLoad={() => {
+                    console.log(
+                      "Iframe loaded:",
+                      browser.ref.current?.contentDocument
+                    );
+                  }}
                 />
               </div>
             </div>

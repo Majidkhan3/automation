@@ -1,7 +1,5 @@
 import { driverStore } from '@/src/lib/driverStore';
-import { stat } from 'fs';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { WebDriver } from 'selenium-webdriver';
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,25 +11,12 @@ export default async function handler(
 
   const { id, scrolling, speed = 1 } = req.body;
 
+  console.log(`[Scroll API] Received request for id: ${id}, scrolling: ${scrolling}`);
+
   try {
-//     const status = driverStore.getStatus();
-    
-//     // Try to verify each driver is still active
-//     const activeDrivers = await Promise.all(
-//       Array.from(driverStore.getAllDrivers().entries()).map(async ([id, info]) => {
-//         try {
-//           await info.driver.getCurrentUrl();
-//           return { id, active: true };
-//         } catch {
-//           return { id, active: false };
-//         }
-//       })
-//     );
-// console.log('Driver:', status);
-// console.log('Driver:', activeDrivers);
     const driver = driverStore.get(id);
-    console.log('Driver:', id);
     if (!driver) {
+      console.error(`[Scroll API] Browser with id: ${id} not found`);
       throw new Error('Browser not found');
     }
 
@@ -59,7 +44,7 @@ export default async function handler(
 
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[Scroll API] Error:', error);
     res.status(500).json({ success: false, error: 'Failed to control scrolling' });
   }
 }
