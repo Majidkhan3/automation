@@ -10,7 +10,9 @@ dotenv.config();
 const dev = process.env.NODE_ENV !== "production";
 const port = process.env.PORT || 3000;
 const app = next({ dev });
-const database = process.env.MONGO_URI || "mongodb://localhost:27017/newstack";
+const database =
+  "mongodb+srv://2223016:N6bVPiFwmE5hhoI5@cluster0.3dvrp.mongodb.net/?retryWrites=true&w=majority/Limoservices" ||
+  "mongodb://localhost:27017/newstack";
 console.log("Database", database);
 const handle = app.getRequestHandler();
 

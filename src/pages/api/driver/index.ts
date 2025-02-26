@@ -1,7 +1,10 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { browserManager } from '@/src/lib/driverStore';
+import { BrowserSession } from '@/src/lib/models/browser';
+import User from '@/src/lib/models/users';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { Builder } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/chrome';
-import { driverStore } from '../../../lib/driverStore';
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,32 +14,49 @@ export default async function handler(
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { url } = req.body;
+  const { url, userId } = req.body;
 
   try {
+    // Get user and their active browser count
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Count active browser sessions
+    const activeBrowserCount = await BrowserSession.countDocuments({
+      userId,
+      status: 'active'
+    });
+
+    // Check if user has reached their browser limit
+    if (activeBrowserCount >= user.browserLimit) {
+      return res.status(403).json({
+        success: false,
+        error: `Browser limit reached. Maximum allowed: ${user.browserLimit}`
+      });
+    }
+
+    // Continue with browser creation if limit not reached
     const options = new Options();
-    options.addArguments('--headless'); // Optional: run in headless mode
+    options.addArguments('--headless'); 
     
     const driver = await new Builder()
       .forBrowser('chrome')
       .setChromeOptions(options)
       .build();
 
-    const id = Date.now().toString();
-    
-    // Add debug logging
-    console.log('Creating new driver with id:', id);
-    console.log('Driver instance:', !!driver);
-    
-    driverStore.set(id, driver);
-    
-    // Verify the driver was stored
-    const storedDriver = driverStore.get(id);
-    console.log('Stored driver retrieved:', !!storedDriver);
-
     await driver.get(url);
     
-    res.status(200).json({ success: true, id });
+    const sessionId = await browserManager.createSession(driver, url, userId);
+    
+    res.status(200).json({ 
+      success: true, 
+      sessionId 
+    });
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ 

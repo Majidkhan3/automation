@@ -26,7 +26,7 @@ export default async function handler(
 
     // POST - Create new user
     if (req.method === "POST") {
-      const { email, password, role } = req.body;
+      const { email, password, role,browserLimit } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ message: "Missing required fields" });
@@ -39,6 +39,7 @@ export default async function handler(
         email,
         password: hashedPassword,
         role: role || "user",
+        browserLimit,
       });
 
       const { password: _, ...userWithoutPassword } = newUser.toObject();

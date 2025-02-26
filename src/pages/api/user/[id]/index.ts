@@ -20,8 +20,8 @@ export default async function handler(
 
     // PUT - Update user
     if (req.method === "PUT") {
-      const { email, password, role } = req.body;
-      const updateData: any = { email, role };
+      const { email, password, role ,browserLimit} = req.body;
+      const updateData: any = { email, role,browserLimit };
 
       // Only hash and update password if provided
       if (password) {

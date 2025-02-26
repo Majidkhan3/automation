@@ -31,6 +31,7 @@ interface User {
   email: string;
   role: "admin" | "user";
   createdAt: string;
+  browserLimit: number; // Add this field
 }
 
 const Users = () => {
@@ -41,12 +42,14 @@ const Users = () => {
     email: string;
     password: string;
     role: "admin" | "user";
+    browserLimit: number;
   }>({
     email: "",
     password: "",
     role: "user",
+    browserLimit: 1,
   });
-
+  console.log("browser", formData);
   //   const fetchUsers = async () => {
   //     try {
   //       const response = await fetch("/api/users");
@@ -68,7 +71,12 @@ const Users = () => {
   const handleClose = () => {
     setOpen(false);
     setEditUser(null);
-    setFormData({ email: "", password: "", role: "user" });
+    setFormData({
+      email: "",
+      password: "",
+      role: "user",
+      browserLimit: formData?.browserLimit, // Keep the current browserLimit
+    });
   };
 
   const fetchUsers = async () => {
@@ -124,6 +132,7 @@ const Users = () => {
               <TableRow>
                 <TableCell>Email</TableCell>
                 <TableCell>Role</TableCell>
+                <TableCell>Browser Limit</TableCell>
                 <TableCell>Created At</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -133,6 +142,9 @@ const Users = () => {
                 <TableRow key={user._id}>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role}</TableCell>
+                  <TableCell>
+                    {user.role === "admin" ? "N/A" : user.browserLimit}
+                  </TableCell>
                   <TableCell>
                     {new Date(user.createdAt).toLocaleDateString()}
                   </TableCell>
@@ -146,6 +158,7 @@ const Users = () => {
                           email: user.email,
                           password: "",
                           role: user.role,
+                          browserLimit: user.browserLimit, // Don't use the || operator here
                         });
                         setOpen(true);
                       }}
@@ -196,17 +209,46 @@ const Users = () => {
                 <Select
                   value={formData.role}
                   label="Role"
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const newRole = e.target.value as "admin" | "user";
                     setFormData({
                       ...formData,
-                      role: e.target.value as "admin" | "user",
-                    })
-                  }
+                      role: newRole,
+                      // Reset browserLimit to 0 for admin, keep current or default for user
+                      browserLimit:
+                        newRole === "admin" ? 0 : formData.browserLimit || 1,
+                    });
+                  }}
                 >
                   <MenuItem value="user">User</MenuItem>
                   <MenuItem value="admin">Admin</MenuItem>
                 </Select>
               </FormControl>
+              {formData.role === "user" && (
+                <TextField
+                  label="Browser Limit"
+                  type="number"
+                  value={formData.browserLimit}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = parseInt(value);
+                    if (value === "") {
+                      setFormData({ ...formData, browserLimit: 1 }); // Set to minimum if empty
+                    } else if (!isNaN(numValue) && numValue >= 1) {
+                      setFormData({ ...formData, browserLimit: numValue });
+                    }
+                  }}
+                  inputProps={{
+                    min: 1,
+                    step: 1,
+                  }}
+                  error={formData?.browserLimit < 1}
+                  helperText={
+                    formData?.browserLimit < 1 ? "Minimum value is 1" : ""
+                  }
+                  required
+                />
+              )}
             </Box>
           </DialogContent>
           <DialogActions>

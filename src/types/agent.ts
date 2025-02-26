@@ -18,6 +18,7 @@ export interface UserInterface extends Document {
   shopifyToken?: string;
   shopifyScriptId?: string;
   wix?: boolean;
+  browserLimit: number;
   wixDomain?: string;
   wixInstanceId?: string;
   wixRefreshToken?: string;

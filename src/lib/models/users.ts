@@ -30,6 +30,10 @@ const UserSchema: Schema = new Schema<UserInterface>(
       type: String,
       required: false,
     },
+    browserLimit: {
+      type: Number,
+      required: true, // Default limit of 1 browser
+    },
     // isActive: {
     //   type: Boolean,
     //   default: true,

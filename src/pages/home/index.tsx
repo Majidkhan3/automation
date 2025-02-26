@@ -167,7 +167,7 @@ export default function DashboardPage() {
         <>
           <AuthGuard>
             <Box sx={{ padding: "24px", maxWidth: "1280px", margin: "auto" }}>
-              <Header
+              {/* <Header
                 name={"Dashboard"}
                 selectedPeriod={selectedPeriod}
                 setSelectedPeriod={(period: any) => setSelectedPeriod(period)}
@@ -176,8 +176,7 @@ export default function DashboardPage() {
                 endDate={endDate} // Add this
                 setEndDate={setEndDate} // Add this
                 domains={domains}
-              />
-
+              /> */}
               {/* {domains.length === 0 && (
                 <>
                   <Box>
@@ -186,7 +185,7 @@ export default function DashboardPage() {
                 </>
               )} 
               */}
-              <Box position="relative">
+              {/* <Box position="relative">
                 {domains.length === 0 && <EmptyWidgetList />}
                 <Box
                   sx={{
@@ -239,7 +238,8 @@ export default function DashboardPage() {
                     />
                   </Box>
                 </Box>
-              </Box>
+              </Box> */}
+              home page
             </Box>
           </AuthGuard>
         </>

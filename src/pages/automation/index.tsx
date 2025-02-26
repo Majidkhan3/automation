@@ -1,74 +1,63 @@
+import { AuthContext } from "@/src/contexts/AuthContext";
 import { Card } from "@mui/material";
-import React, { useEffect, useState } from "react";
-
+import React, { useContext, useEffect, useState } from "react";
+interface BrowserSession {
+  sessionId: string;
+  url: string;
+  status: string;
+  isScrolling: boolean;
+}
 const Index = () => {
+  const { user }: any = useContext(AuthContext);
+  console.log(user?._id);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
-  const [browsers, setBrowsers] = useState<
-    {
-      id: string;
-      url: string;
-      isScrolling: boolean;
-      ref: React.RefObject<HTMLIFrameElement>;
-    }[]
-  >([]);
+  const [browsers, setBrowsers] = useState<BrowserSession[]>([]);
+
   useEffect(() => {
-    const scrollIntervals: { [key: string]: NodeJS.Timeout } = {};
-
-    browsers.forEach((browser) => {
-      if (browser.isScrolling && browser.ref.current) {
-        const iframe = browser.ref.current;
-
-        // Wait for the iframe to load
-        iframe.onload = () => {
-          let currentScroll = 0;
-          scrollIntervals[browser.id] = setInterval(() => {
-            try {
-              if (iframe.contentDocument) {
-                const iframeBody = iframe.contentDocument.body;
-                const iframeHtml = iframe.contentDocument.documentElement;
-
-                currentScroll += scrollSpeed;
-                iframeBody.scrollTo({
-                  top: currentScroll,
-                  behavior: "smooth",
-                });
-
-                // Reset scroll if at bottom
-                if (
-                  currentScroll >=
-                  iframeBody.scrollHeight - iframeBody.clientHeight
-                ) {
-                  currentScroll = 0;
-                }
-              }
-            } catch (error) {
-              console.error(`Scrolling error for ${browser.url}:`, error);
-              // Optionally stop scrolling on error
-              setBrowsers((prev) =>
-                prev.map((b) =>
-                  b.id === browser.id ? { ...b, isScrolling: false } : b
-                )
-              );
-            }
-          }, 50);
-        };
+    const fetchActiveBrowsers = async () => {
+      try {
+        const response = await fetch(`/api/driver/sessions?userId=${user._id}`);
+        const data = await response.json();
+        if (data.success) {
+          setBrowsers(
+            data.sessions.map((session: any) => ({
+              ...session,
+              isScrolling: false,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching active browsers:", error);
       }
-    });
-
-    return () => {
-      Object.values(scrollIntervals).forEach((interval) =>
-        clearInterval(interval)
-      );
     };
-  }, [browsers, scrollSpeed]);
-  const handleScroll = (id: string) => {
-    setBrowsers((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, isScrolling: !b.isScrolling } : b))
-    );
-  };
 
+    if (user?._id) {
+      fetchActiveBrowsers();
+    }
+  }, [user?._id]);
+  const handleScroll = async (id: string) => {
+    const browser = browsers.find((b) => b.sessionId === id);
+    if (browser) {
+      const updatedBrowsers = browsers.map((b) =>
+        b.sessionId === id ? { ...b, isScrolling: !b.isScrolling } : b
+      );
+      setBrowsers(updatedBrowsers);
+
+      try {
+        await fetch("/api/driver/scroll", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id, scrolling: !browser.isScrolling }),
+        });
+      } catch (error) {
+        console.error("Error controlling scroll:", error);
+      }
+    }
+  };
   const handleOpenWebsite = async () => {
     setLoading(true);
     try {
@@ -77,44 +66,55 @@ const Index = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({
+          url,
+          userId: user._id,
+        }),
       });
 
       const data = await response.json();
       if (!data.success) {
+        // Show error message to user
+        alert(data.error); // Consider using a proper toast/notification system
         throw new Error(data.error);
       }
 
-      const newBrowser = {
-        id: Date.now().toString(),
-        url,
-        isScrolling: true,
-        ref: React.createRef<HTMLIFrameElement>(),
-      };
-      setBrowsers((prev) => [...prev, newBrowser]);
-      setUrl(""); // Clear input after successful open
+      setBrowsers((prev) => [
+        ...prev,
+        {
+          sessionId: data.sessionId,
+          url,
+          status: "active",
+          isScrolling: false,
+        },
+      ]);
+      setUrl("");
     } catch (error) {
       console.error("Error opening website:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleCloseBrowser = async (id: string) => {
+  const handleCloseBrowser = async (sessionId: string) => {
     try {
-      await fetch("/api/driver/close", {
+      const response = await fetch("/api/driver/close", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ sessionId }),
       });
-      setBrowsers((prev) => prev.filter((browser) => browser.id !== id));
+
+      const data = await response.json();
+      if (data.success) {
+        setBrowsers((prev) =>
+          prev.filter((browser) => browser.sessionId !== sessionId)
+        );
+      }
     } catch (error) {
       console.error("Error closing browser:", error);
     }
   };
-
   return (
     <div className="h-screen flex">
       {/* Left panel - Controls */}
@@ -163,14 +163,14 @@ const Index = () => {
         <div className="grid grid-cols-2 gap-4">
           {browsers.map((browser) => (
             <div
-              key={browser.id}
+              key={browser.sessionId}
               className="flex flex-col bg-white rounded-lg shadow overflow-hidden"
             >
               <div className="p-2 bg-gray-100 flex justify-between items-center">
                 <p className="truncate text-sm flex-1">{browser.url}</p>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleScroll(browser.id)}
+                    onClick={() => handleScroll(browser.sessionId)}
                     className={`px-2 py-1 text-sm rounded ${
                       browser.isScrolling
                         ? "bg-green-500 text-white"
@@ -180,7 +180,7 @@ const Index = () => {
                     {browser.isScrolling ? "Stop Scroll" : "Start Scroll"}
                   </button>
                   <button
-                    onClick={() => handleCloseBrowser(browser.id)}
+                    onClick={() => handleCloseBrowser(browser.sessionId)}
                     className="px-2 py-1 text-sm text-red-500 hover:bg-red-50 rounded"
                   >
                     Close
@@ -189,18 +189,10 @@ const Index = () => {
               </div>
               <div className="relative w-full" style={{ height: "300px" }}>
                 <iframe
-                  ref={browser.ref}
                   src={browser.url}
                   className="absolute inset-0 w-full h-full border-none"
-                  style={{ overflow: "scroll" }}
-                  sandbox="allow-same-origin allow-scripts allow-popups"
+                  sandbox="allow-same-origin allow-scripts"
                   title={`Preview of ${browser.url}`}
-                  onLoad={() => {
-                    console.log(
-                      "Iframe loaded:",
-                      browser.ref.current?.contentDocument
-                    );
-                  }}
                 />
               </div>
             </div>

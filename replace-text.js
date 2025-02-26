@@ -1,43 +1,49 @@
-const fs = require("fs");
-const path = require("path");
+(function () {
+  let isScrolling = false;
+  let scrollSpeed = 1;
+  let currentPosition = 0;
 
-const replaceInFile = (filePath, search, replace) => {
-  const fileContent = fs.readFileSync(filePath, "utf-8");
-  const updatedContent = fileContent.replace(new RegExp(search, "g"), replace);
-  fs.writeFileSync(filePath, updatedContent);
-  console.log(`Replaced in: ${filePath}`);
-};
+  // Listen for messages from parent
+  window.addEventListener("message", function (event) {
+    const { type, speed, command } = event.data;
 
-const traverseDirectory = (dir, search, replace) => {
-  const files = fs.readdirSync(dir);
-  files.forEach((file) => {
-    const fullPath = path.join(dir, file);
-    const stat = fs.lstatSync(fullPath);
-
-    // Skip node_modules and .next directories
-    if (stat.isDirectory() && (file === "node_modules" || file === ".next")) {
-      return;
-    }
-
-    if (stat.isDirectory()) {
-      traverseDirectory(fullPath, search, replace);
-    } else if (
-      fullPath.endsWith(".js") ||
-      fullPath.endsWith(".ts") ||
-      fullPath.endsWith(".tsx") ||
-      fullPath.endsWith(".jsx")
-    ) {
-      replaceInFile(fullPath, search, replace);
+    if (type === "SCROLL_CONTROL") {
+      if (command === "START") {
+        isScrolling = true;
+        scrollSpeed = speed || 1;
+        startScrolling();
+      } else if (command === "STOP") {
+        isScrolling = false;
+      }
     }
   });
-};
 
-const directoryPath = "./"; // Start from the root of the project
-const searchWord = "widgetcustomization";
-const replaceWord = "widgetcustomization";
+  function startScrolling() {
+    if (!isScrolling) return;
 
-console.log(
-  `Starting replacement of "${searchWord}" with "${replaceWord}" in ${directoryPath}...`
-);
-traverseDirectory(directoryPath, searchWord, replaceWord);
-console.log("Replacement completed.");
+    // Increment scroll position
+    currentPosition += scrollSpeed;
+    window.scrollTo(0, currentPosition);
+
+    // Check if we've reached the bottom
+    if (
+      window.innerHeight + currentPosition >=
+      document.documentElement.scrollHeight
+    ) {
+      currentPosition = 0;
+    }
+
+    // Send current position to parent
+    window.parent.postMessage(
+      {
+        type: "SCROLL_UPDATE",
+        position: currentPosition,
+        maxScroll: document.documentElement.scrollHeight,
+      },
+      "*"
+    );
+
+    // Continue scrolling
+    requestAnimationFrame(startScrolling);
+  }
+})();

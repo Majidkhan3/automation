@@ -1,126 +1,72 @@
 import { WebDriver } from 'selenium-webdriver';
+import { BrowserSession } from './models/browser';
 
-interface DriverInfo {
+interface ActiveBrowser {
   driver: WebDriver;
-  createdAt: Date;
   lastUsed: Date;
 }
 
-class DriverStore {
-  private static instance: DriverStore;
-  private drivers: Map<string, DriverInfo>;
-  private initialized: boolean;
+class BrowserManager {
+  private activeBrowsers: Map<string, ActiveBrowser> = new Map();
 
-  private constructor() {
-    this.drivers = new Map();
-    this.initialized = false;
-    console.log('[DriverStore] Constructor called');
-  }
-
-  public static getInstance(): DriverStore {
-    if (!DriverStore.instance) {
-      console.log('[DriverStore] Creating new instance');
-      DriverStore.instance = new DriverStore();
-      DriverStore.instance.initialized = true;
-    }
-    return DriverStore.instance;
-  }
-
-  public set(id: string, driver: WebDriver): void {
-    if (!id || !driver) {
-      console.error('[DriverStore] Invalid ID or driver instance provided');
-      throw new Error('Invalid ID or driver instance');
-    }
-
-    if (this.drivers.has(id)) {
-      console.warn(`[DriverStore] Driver with ID ${id} already exists. Overwriting.`);
-    }
-
-    const driverInfo: DriverInfo = {
+  async createSession(driver: WebDriver, url: string, userId: string): Promise<string> {
+    const sessionId = Date.now().toString();
+    
+    // Store browser instance in memory
+    this.activeBrowsers.set(sessionId, {
       driver,
-      createdAt: new Date(),
-      lastUsed: new Date(),
-    };
-    this.drivers.set(id, driverInfo);
-    console.log(`[DriverStore] Driver ${id} added successfully`);
-    this.logState();
+      lastUsed: new Date()
+    });
+    // Store session info in MongoDB
+    await BrowserSession.create({
+      sessionId,
+      userId,
+      url,
+      status: 'active'
+    });
+
+    return sessionId;
   }
 
-  public get(id: string): WebDriver | undefined {
-    if (!id) {
-      console.error('[DriverStore] Invalid ID provided');
-      throw new Error('Invalid ID');
-    }
 
-    const driverInfo = this.drivers.get(id);
-    if (driverInfo) {
-      driverInfo.lastUsed = new Date();
-      console.log(`[DriverStore] Driver ${id} found and last used updated`);
-      return driverInfo.driver;
-    }
-    console.log(`[DriverStore] Driver ${id} not found`);
-    return undefined;
-  }
-
-  public delete(id: string): boolean {
-    if (!id) {
-      console.error('[DriverStore] Invalid ID provided');
-      throw new Error('Invalid ID');
-    }
-
-    const result = this.drivers.delete(id);
-    if (result) {
-      console.log(`[DriverStore] Driver ${id} deleted successfully`);
-    } else {
-      console.log(`[DriverStore] Driver ${id} not found for deletion`);
-    }
-    this.logState();
-    return result;
-  }
-
-  public getAllDrivers(): Map<string, DriverInfo> {
-    return this.drivers;
-  }
-
-  public getStatus(): any {
-    return {
-      initialized: this.initialized,
-      driversCount: this.drivers.size,
-      driverIds: Array.from(this.drivers.keys()),
-      driverDetails: Array.from(this.drivers.entries()).map(([id, info]) => ({
-        id,
-        createdAt: info.createdAt,
-        lastUsed: info.lastUsed,
-      })),
-    };
-  }
-
-  public cleanupStaleDrivers(maxAgeInMinutes: number = 30): void {
-    const now = new Date();
-    const staleDriverIds: string[] = [];
-
-    this.drivers.forEach((info, id) => {
-      const ageInMinutes = (now.getTime() - info.lastUsed.getTime()) / (1000 * 60);
-      if (ageInMinutes > maxAgeInMinutes) {
-        staleDriverIds.push(id);
+  async closeSession(sessionId: string): Promise<boolean> {
+    const browser = this.activeBrowsers.get(sessionId);
+    
+    try {
+      if (browser) {
+        await browser.driver.quit();
+        this.activeBrowsers.delete(sessionId);
       }
-    });
 
-    staleDriverIds.forEach((id) => {
-      this.delete(id);
-      console.log(`[DriverStore] Cleaned up stale driver ${id}`);
-    });
+      const session = await BrowserSession.findOneAndUpdate(
+        { sessionId },
+        { status: 'closed' },
+        { new: true }
+      );
+
+      return !!session;
+    } catch (error) {
+      console.error(`Failed to close browser session ${sessionId}:`, error);
+      return false;
+    }
   }
 
-  private logState(): void {
-    console.log('[DriverStore] Current state:', {
-      driversCount: this.drivers.size,
-      driverIds: Array.from(this.drivers.keys()),
+  getDriver(sessionId: string): WebDriver | undefined {
+    return this.activeBrowsers.get(sessionId)?.driver;
+  }
+
+  async cleanupStaleSessions(maxAgeMinutes: number = 30): Promise<void> {
+    const staleTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000);
+    
+    const staleSessions = await BrowserSession.find({
+      status: 'active',
+      lastUsed: { $lt: staleTime }
     });
+
+    for (const session of staleSessions) {
+      await this.closeSession(session.sessionId);
+    }
   }
 }
 
-// Create and export a single instance
-const store = DriverStore.getInstance();
-console.log('[DriverStore] Initial state:', store.getStatus());
-export const driverStore = store;
+export const browserManager = new BrowserManager();
