@@ -1,7 +1,7 @@
 import Cors from "cors";
 
 const cors = Cors({
-  origin: "https://ichonic-asi-f32d3d0b82b1.herokuapp.com",
+  origin: "https://google-automation.netlify.app",
   methods: ["POST"],
 });
 
