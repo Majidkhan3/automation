@@ -10,6 +10,7 @@ export default async function handler(
 ) {
   if (req.method === "POST") {
     try {
+      await dbConnect()
       // console.log("this is request", req);
       const { email, password: userPassword } = req.body;
 
