@@ -1,0 +1,17 @@
+[[redirects]]
+  from = "/api/*"
+  to = "https://google-automation.netlify.app/api/:splat"
+  status = 200
+  force = true
+
+# Headers to handle CORS
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# Enable Netlify functions (optional)
+[functions]
+  node_bundler = "esbuild"

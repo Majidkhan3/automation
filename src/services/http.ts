@@ -1,6 +1,6 @@
 import axios from "axios";
 import { getToken } from "./getToken";
-const baseUrl = "https://google-automation.netlify.app";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 console.log(" baseUrl", baseUrl);
 
 const http = axios.create({

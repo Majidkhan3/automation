@@ -29,12 +29,8 @@ const nextCallback = (req, res) => {
 
 app.prepare().then(async () => {
   const server = express();
-  const corsOptions = {
-    origin: "https://google-automation.netlify.app", // Allow only your frontend
-    methods: "GET,POST,PUT,DELETE",
-    credentials: true, // Enable cookies if needed
-  };
-  server.use(cors(corsOptions));
+
+  server.use(cors());
   const mongooseOptions = {
     writeConcern: { w: 1 },
     retryWrites: true,
