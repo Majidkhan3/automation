@@ -1,10 +1,12 @@
 import { BrowserSession } from "@/src/lib/models/browser";
+import dbConnect from "@/src/lib/models/dbConnect";
 import { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  await dbConnect()
   if (req.method !== 'GET') {
     return res.status(405).json({ 
       success: false, 
