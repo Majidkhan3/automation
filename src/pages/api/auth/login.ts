@@ -1,4 +1,4 @@
-import dbConnect from "@/src/lib/models/dbConnect";
+import {dbConnect} from "@/src/lib/models/dbConnect";
 import * as bcrypt from "bcrypt";
 import { NextApiRequest, NextApiResponse } from "next";
 import { signToken } from "src/helpers/jwt";
@@ -8,9 +8,9 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  await dbConnect()
   if (req.method === "POST") {
     try {
+      await dbConnect()
       // console.log("this is request", req);
       const { email, password: userPassword } = req.body;
 

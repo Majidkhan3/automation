@@ -1,5 +1,5 @@
 import { BrowserSession } from "@/src/lib/models/browser";
-import dbConnect from "@/src/lib/models/dbConnect";
+import {dbConnect} from "@/src/lib/models/dbConnect";
 import { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
